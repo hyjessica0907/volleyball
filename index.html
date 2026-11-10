@@ -170,7 +170,7 @@
         <span><span class="dot" style="background:#ffcd75"></span> 自（自由）</span>
         <span><span class="dot" style="background:#38b764"></span> 舉（舉球）</span>
       </div>
-      <p class="note" style="margin:8px 0 0">輪轉順序：舉球①→大砲①→欄中①→舉球②→大砲②→欄中②（對角同職位），第 1 輪由舉球① 發球，前排左→右是 舉・中・大。欄中轉到後排就換自由上場、自己到場邊等；輪到欄中發球的那一輪，欄中自己發，自由這球打完再換。虛線是跑動路線，粗線是你。</p>
+      <p class="note" style="margin:8px 0 0">輪轉順序：舉球①→大砲①→欄中①→舉球②→大砲②→欄中②（對角同職位），第 1 輪由舉球① 發球，前排左→右是 舉・中・大。欄中轉到後排就換自由上場、自己到場邊等；輪到欄中發球的那一輪，欄中自己發，等我方失分、換對方發球時，自由再換回來。虛線是跑動路線，粗線是你。</p>
     </div>
   </div>
 </div>
@@ -440,7 +440,7 @@ async function playUs(){
   const sv = whoAt(1);
   setSteps(['發球員走到端線後','發球！大家換位', ...DEF_STEPS]);
   stepNow(0);
-  caption(`後排右的 ${nm(sv)} 走到端線後準備發球。` + (lu.serveM ? `<br>這輪輪到欄中發球，自由先在場邊等，這球打完才換上。` : ''));
+  caption(`後排右的 ${nm(sv)} 走到端線後準備發球。` + (lu.serveM ? `<br>這輪輪到欄中發球，自由先在場邊等；等我方失分、換對方發球時，自由再換回來。` : ''));
   if (!await tween(0.8, [{i:sv, to:SERVE}])) return;
   if (!await wait(300)) return;
 
@@ -452,30 +452,43 @@ async function playUs(){
   await defend(2, [170,170]);
 }
 
+/* 接發站位：前排舉球員站網前，其他五人站 W 型 */
+function receiveSpots(){
+  const spots = {};
+  const S = front('舉');
+  const netX = {4:70, 3:200, 2:330};
+  spots[S] = [netX[lu.pos[S]], 410];
+  const order = {4:0, 3:1, 2:2};
+  const fr = P.map((_, i) => i).filter(i => onCourt(i) && i !== S && isFront(lu.pos[i]))
+               .sort((a, b) => order[lu.pos[a]] - order[lu.pos[b]]);
+  spots[fr[0]] = [100,505]; spots[fr[1]] = [300,505];
+  const bk = {5:[100,635], 6:[200,565], 1:[300,635]};
+  P.forEach((_, i) => { if (onCourt(i) && !isFront(lu.pos[i])) spots[i] = bk[lu.pos[i]]; });
+  return spots;
+}
+
 async function playThem(){
   const S = front('舉'), OH = front('大'), M = front('中'), passer = LIB;
-  const lp = ROT[lu.pos[LIB]];
-  const passSpot = [lp[0] + (lp[0] > 250 ? -20 : lp[0] < 150 ? 20 : -10), lp[1] - 14], setSpot = [285,414];
-  setSteps(['對方發球，站輪轉位置接發','後排先在原位接一傳，舉球員跑到網前右側','一傳到位，後排換位、欄中跑快攻','舉給左邊的大砲','大砲扣球！', ...DEF_STEPS]);
+  const rs = receiveSpots();
+  const lp = rs[LIB];
+  const passSpot = [lp[0] + (lp[0] < 200 ? 15 : lp[0] > 200 ? -15 : 0), lp[1] - 12], setSpot = [285,414];
+  setSteps(['對方發球，站接發位置','大家先在原位接一傳，前排舉球員跑舉球位','一傳到位，大家換位、欄中打中間','舉給左邊的大砲','大砲扣球！', ...DEF_STEPS]);
   $('oppServer').setAttribute('visibility','visible');
 
   stepNow(0);
-  caption('對方發球。發球前要照輪轉位置站，<b>不能提早換位</b>。');
+  caption('對方發球。前排舉球員站網前，其他五個人站 <b>W 型</b>接發。發球前要照輪轉順序站，<b>不能提早換位</b>。');
   setBall(110, 36, 0);
-  if (!await wait(900)) return;
+  if (!await tween(0.9, P.map((_, i) => i).filter(onCourt).map(i => ({i, to: rs[i]})))) return;
+  if (!await wait(500)) return;
 
   stepNow(1);
-  caption(`球過網！後排<b>先不換位</b>，在輪轉位置把第一球接好。${nm(passer)} 接一傳，前排的 ${nm(S)} 跑到網前右側準備舉球。`);
-  const others = [back('大'), back('舉')];
-  const mv1 = [
-    {i:passer, to:passSpot, delay:.3}, {i:S, to:setSpot, delay:.35},
-    {i:OH, to:[62,505], delay:.35}, {i:M, to:[205,480], delay:.35}
-  ];
-  if (!await tween(1.4, mv1, {from:[110,36], to:passSpot, h:140})) return;
+  caption(`球過網！大家<b>先不換位</b>，在原位把第一球接好，${nm(passer)} 接一傳。只有前排的 ${nm(S)} 馬上快跑到舉球位。`);
+  if (!await tween(1.4, [{i:S, to:setSpot, delay:.2}, {i:passer, to:passSpot, delay:.45}], {from:[110,36], to:passSpot, h:140})) return;
 
   stepNow(2);
-  caption(`一傳到位！<b>接完這球後排才換位</b>：大到左後、自到中後、舉到右後。${nm(M)} 往網前衝跑快攻，牽制對方攔網。`);
-  if (!await tween(1.0, [{i:M, to:[215,414], delay:.1}, {i:OH, to:[78,470], delay:.3}, {i:passer, to: baseSpot(passer), delay:.15}, ...others.map(i => ({i, to: baseSpot(i), delay:.15}))], {from:passSpot, to:[setSpot[0], setSpot[1]-6], h:110})) return;
+  caption(`一傳到位！<b>接完這球大家才換位</b>：後排換到 大・自・舉，${nm(OH)} 到左邊準備攻擊，${nm(M)} 往網前衝準備打中間，牽制對方攔網。`);
+  const others = P.map((_, i) => i).filter(i => onCourt(i) && !isFront(lu.pos[i]));
+  if (!await tween(1.0, [{i:M, to:[215,414], delay:.1}, {i:OH, to:[78,470], delay:.1}, ...others.map(i => ({i, to: baseSpot(i), delay:.15}))], {from:passSpot, to:[setSpot[0], setSpot[1]-6], h:110})) return;
 
   stepNow(3);
   caption(`${nm(S)} 把球舉給左前的 ${nm(OH)}，大砲助跑起跳。`);
@@ -513,7 +526,7 @@ async function nextRot(){
   if (outs.length || ins.length){
     msg += '<br>◆ 換人：' + [...outs.map(i => `${nm(i)} 下場到場邊`), ...ins.map(i => `${nm(i)} 上場`)].join('、') + '。';
   }
-  if (lu.serveM) msg += '<br>這輪輪到欄中發球，自由先在場邊等。';
+  if (lu.serveM) msg += '<br>這輪輪到欄中發球，自由先在場邊等；我方失分、換對方發球時，自由再換回來。';
   caption(msg);
   await tween(1.4, P.map((_, i) => ({i, to: startSpot(i)})));
   if (my === token){ playing = false; updateBtns(); renderInfo(); }
@@ -534,7 +547,7 @@ function reset(clearCaption = true){
   if (clearCaption){
     if (sel === null) caption('★ 先點場上任一位球員（或右邊按鈕）選你的位子，再選發球方和對方回擊，按 START 播放。');
     else caption(`你是 ${nm(sel)}，現在${onCourt(sel) ? '在' + POSNAME[lu.pos[sel]] : '在場邊等'}。按 START 播放看跑位。`
-      + (lu.serveM ? '<br>這輪輪到欄中發球，自由先在場邊等。' : ''));
+      + (lu.serveM ? '<br>這輪輪到欄中發球，自由先在場邊等；我方失分、換對方發球時，自由再換回來。' : ''));
   }
 }
 
