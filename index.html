@@ -472,6 +472,12 @@ async function playUs(){
   await defend(2, [170,170]);
 }
 
+/* 開始前站的位置：對方發球 → 接發站位，我方發球 → 輪轉位置 */
+function readySpot(i){
+  if (side === 'them' && onCourt(i)) return receiveSpots()[i].slice();
+  return startSpot(i);
+}
+
 /* 接發站位：前排舉球員站網前，其他五人站 W 型 */
 function receiveSpots(){
   const spots = {};
@@ -498,8 +504,7 @@ async function playThem(){
   stepNow(0);
   caption('對方發球。前排舉球員站網前，其他五個人站 <b>W 型</b>接發。發球前要照輪轉順序站，<b>不能提早換位</b>。');
   setBall(110, 36, 0);
-  if (!await tween(0.9, P.map((_, i) => i).filter(onCourt).map(i => ({i, to: rs[i]})))) return;
-  if (!await wait(500)) return;
+  if (!await wait(900)) return;
 
   stepNow(1);
   caption(`球過網！大家<b>先不換位</b>，在原位把第一球接好，${nm(passer)} 接一傳。只有前排的 ${nm(S)} 馬上快跑到舉球位。`);
@@ -548,7 +553,7 @@ async function nextRot(){
   }
   if (lu.serveM) msg += '<br>這輪輪到欄中發球，自由先在場邊等；我方失分、換對方發球時，自由再換回來。';
   caption(msg);
-  await tween(1.4, P.map((_, i) => ({i, to: startSpot(i)})));
+  await tween(1.4, P.map((_, i) => ({i, to: readySpot(i)})));
   if (my === token){ playing = false; updateBtns(); renderInfo(); }
 }
 
@@ -557,7 +562,7 @@ function reset(clearCaption = true){
   token++;
   playing = false;
   lu = lineup();
-  cur = P.map((_, i) => startSpot(i));
+  cur = P.map((_, i) => readySpot(i));
   $('trails').innerHTML = '';
   hideBall();
   $('block').setAttribute('visibility','hidden');
