@@ -143,6 +143,10 @@
     <div class="card">
       <h2>④ 輪轉</h2>
       <div class="row" id="rotRow"></div>
+      <div id="firstBox" style="display:none;margin-top:10px;padding:8px 10px;background:#ffcd75;border:3px solid #000">
+        <div style="font-size:14px;margin-bottom:6px">這輪前排是 舉・中・大（大砲在最右），第一球先怎麼打？</div>
+        <div class="row" id="firstRow"></div>
+      </div>
       <div class="row" style="margin-top:10px;align-items:center">
         <button class="play" id="playBtn">► START 播放</button>
         <button id="pauseBtn" disabled>Ⅱ 暫停</button>
@@ -243,7 +247,7 @@ const ATK = {
   tip:   {name:'小球', text:'對方吊小球在攔網後面，<b>後排右的舉</b>往前衝救球。'}
 };
 
-let rot = 1, side = 'us', atk = 'cross', sel = null, speed = 1, token = 0, playing = false, paused = false;
+let rot = 1, side = 'us', atk = 'cross', sel = null, speed = 1, token = 0, playing = false, paused = false, firstAtk = 'ohMid';
 let cur = [], lu = null;
 
 const posOf = (i, r = rot) => (((i - (r - 1)) % 6) + 6) % 6 + 1;
@@ -493,16 +497,58 @@ function receiveSpots(){
   return spots;
 }
 
+/* 前排左→右是 舉・中・大（舉在最左、大在最右）的輪次 */
+function crossRound(){
+  if (side !== 'them') return false;
+  const S = front('舉'), OH = front('大');
+  return S >= 0 && OH >= 0 && lu.pos[S] === 4 && lu.pos[OH] === 2;
+}
+
 async function playThem(){
   const S = front('舉'), OH = front('大'), M = front('中'), passer = LIB;
   const rs = receiveSpots();
   const lp = rs[LIB];
   const passSpot = [lp[0] + (lp[0] < 200 ? 15 : lp[0] > 200 ? -15 : 0), lp[1] - 12], setSpot = [285,414];
-  setSteps(['對方發球，站接發位置','大家先在原位接一傳，前排舉球員跑舉球位','一傳到位，大家換位、欄中打中間','舉給左邊的大砲','大砲扣球！', ...DEF_STEPS]);
+  const cross = crossRound();
+  const others = P.map((_, i) => i).filter(i => onCourt(i) && !isFront(lu.pos[i]));
+
+  // 這一球誰打、從哪打
+  let plan;
+  if (!cross){
+    plan = {
+      hitter: OH, run: [{i:M, to:[215,414], delay:.1}, {i:OH, to:[78,470], delay:.1}],
+      hit: [96,416], ball: [96,402],
+      s2: `一傳到位！<b>接完這球大家才換位</b>：後排換到 大・自・舉，${nm(OH)} 到左邊準備攻擊，${nm(M)} 往網前衝準備打中間，牽制對方攔網。`,
+      s3: `${nm(S)} 把球舉給左前的 ${nm(OH)}，大砲助跑起跳。`,
+      steps: ['一傳到位，大家換位、欄中打中間','舉給左邊的大砲','大砲扣球！'],
+      after: '扣球！大家回到站位，準備對方打回來。'
+    };
+  } else if (firstAtk === 'ohMid'){
+    plan = {
+      hitter: OH, run: [{i:OH, to:[240,470], delay:.1}, {i:M, to:[90,470], delay:.1}],
+      hit: [220,416], ball: [220,402],
+      s2: `一傳到位！這輪前排是 舉・中・大，大砲在最右邊，<b>不硬換位</b>：${nm(OH)} 直接往中間準備打中間，${nm(M)} 留在左邊。後排先換到 大・自・舉。`,
+      s3: `${nm(S)} 把球舉到中間給 ${nm(OH)}。`,
+      steps: ['一傳到位，大砲往中間準備','舉給中間的大砲','大砲打中間！'],
+      after: '打完這一球，<b>前排才換到正確位置</b>：大砲回左邊、欄中回中間。'
+    };
+  } else {
+    plan = {
+      hitter: M, run: [{i:M, to:[78,470], delay:.1}, {i:OH, to:[300,470], delay:.1}],
+      hit: [96,416], ball: [96,402],
+      s2: `一傳到位！這輪前排是 舉・中・大，大砲在最右邊，<b>不硬換位</b>：${nm(M)} 拉到左邊準備打最左邊的球，${nm(OH)} 留在右邊。後排先換到 大・自・舉。`,
+      s3: `${nm(S)} 把球舉到最左邊給 ${nm(M)}。`,
+      steps: ['一傳到位，欄中拉到左邊準備','舉給左邊的欄中','欄中打左邊！'],
+      after: '打完這一球，<b>前排才換到正確位置</b>：大砲回左邊、欄中回中間。'
+    };
+  }
+
+  setSteps(['對方發球，站接發位置','大家先在原位接一傳，前排舉球員跑舉球位', ...plan.steps, ...DEF_STEPS]);
   $('oppServer').setAttribute('visibility','visible');
 
   stepNow(0);
-  caption('對方發球。前排舉球員站網前，其他五個人站 <b>W 型</b>接發。發球前要照輪轉順序站，<b>不能提早換位</b>。');
+  caption('對方發球。前排舉球員站網前，其他五個人站 <b>W 型</b>接發。發球前要照輪轉順序站，<b>不能提早換位</b>。'
+    + (cross ? `<br>★ 這輪前排是 舉・中・大，第一球先由${firstAtk === 'ohMid' ? '大砲打中間' : '欄中打最左邊'}，打完再換位。` : ''));
   setBall(110, 36, 0);
   if (!await wait(900)) return;
 
@@ -511,19 +557,18 @@ async function playThem(){
   if (!await tween(1.4, [{i:S, to:setSpot, delay:.2}, {i:passer, to:passSpot, delay:.45}], {from:[110,36], to:passSpot, h:140})) return;
 
   stepNow(2);
-  caption(`一傳到位！<b>接完這球大家才換位</b>：後排換到 大・自・舉，${nm(OH)} 到左邊準備攻擊，${nm(M)} 往網前衝準備打中間，牽制對方攔網。`);
-  const others = P.map((_, i) => i).filter(i => onCourt(i) && !isFront(lu.pos[i]));
-  if (!await tween(1.0, [{i:M, to:[215,414], delay:.1}, {i:OH, to:[78,470], delay:.1}, ...others.map(i => ({i, to: baseSpot(i), delay:.15}))], {from:passSpot, to:[setSpot[0], setSpot[1]-6], h:110})) return;
+  caption(plan.s2);
+  if (!await tween(1.0, [...plan.run, ...others.map(i => ({i, to: baseSpot(i), delay:.15}))], {from:passSpot, to:[setSpot[0], setSpot[1]-6], h:110})) return;
 
   stepNow(3);
-  caption(`${nm(S)} 把球舉給左前的 ${nm(OH)}，大砲助跑起跳。`);
-  if (!await tween(0.9, [{i:OH, to:[96,416], delay:.35}], {from:[setSpot[0], setSpot[1]-6], to:[96,402], h:95})) return;
+  caption(plan.s3);
+  if (!await tween(0.9, [{i:plan.hitter, to:plan.hit, delay:.35}], {from:[setSpot[0], setSpot[1]-6], to:plan.ball, h: cross && firstAtk === 'ohMid' ? 70 : 95})) return;
 
   stepNow(4);
-  caption(`${nm(OH)} 扣球！大家回到站位，準備對方打回來。`);
-  if (!await tween(0.45, [], {from:[96,402], to:[250,170], h:25})) return;
+  caption(`${nm(plan.hitter)} ${plan.after}`);
+  if (!await tween(0.45, [], {from:plan.ball, to:[250,170], h:25})) return;
   const back2 = P.map((_, i) => i).filter(onCourt).map(i => ({i, to: baseSpot(i)}));
-  if (!await tween(0.9, back2)) return;
+  if (!await tween(cross ? 1.2 : 0.9, back2)) return;
   await defend(5, [250,170]);
 }
 
@@ -607,6 +652,14 @@ function updateBtns(){
   $('sideThem').className = side === 'them' ? 'on' : '';
   ['sideUs','sideThem','nextBtn','playBtn'].forEach(id => $(id).disabled = playing);
   $('pauseBtn').disabled = !playing;
+  $('firstBox').style.display = crossRound() ? 'block' : 'none';
+  $('firstRow').innerHTML = '';
+  [['ohMid','大砲先打中間'],['mLeft','欄中先打最左邊']].forEach(([k, t]) => {
+    const b = document.createElement('button');
+    b.textContent = t; b.className = firstAtk === k ? 'on' : ''; b.disabled = playing;
+    b.onclick = () => { firstAtk = k; reset(); };
+    $('firstRow').appendChild(b);
+  });
   if (!playing && paused) setPaused(false);
 }
 
