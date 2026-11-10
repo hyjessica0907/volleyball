@@ -76,6 +76,12 @@
   svg text{font-family:"Cubic11",monospace;pointer-events:none;font-weight:normal!important}
   svg text.halo{paint-order:stroke;stroke:#000;stroke-width:3px;stroke-linejoin:miter;fill:#fff}
   .player{cursor:pointer}
+  #talkModal .box{background:var(--paper);color:var(--ink);border:4px solid #000;box-shadow:8px 8px 0 #000;padding:14px;max-width:720px;width:100%;max-height:88vh;display:flex;flex-direction:column}
+  .talkBody{overflow-y:auto;font-size:15px;line-height:1.8;padding-right:6px}
+  .talkBody h3{margin:16px 0 6px;font-weight:normal;font-size:18px;color:#fff;background:var(--red);display:inline-block;padding:2px 10px;box-shadow:3px 3px 0 #000}
+  .talkBody h3:first-child{margin-top:4px}
+  .talkBody p{margin:0 0 10px}
+  .talkBody p.key{background:var(--yellow);border-left:6px solid var(--red);padding:4px 10px;margin:4px 0 10px}
   #refModal .box{background:var(--paper);color:var(--ink);border:4px solid #000;box-shadow:8px 8px 0 #000;padding:14px;max-width:720px;width:100%}
   #refModal img{width:100%;height:auto;display:block;border:3px solid #000;image-rendering:auto}
 </style>
@@ -114,7 +120,7 @@
   </div>
 
   <div class="panel">
-    <div><button id="refBtn">◆ 裁判手勢</button></div>
+    <div class="row"><button id="refBtn">◆ 裁判手勢</button><button id="talkBtn">★ 精神喊話</button></div>
     <div class="card">
       <h2>① 選你的位子</h2>
       <div class="row" id="pickRow"></div>
@@ -173,6 +179,43 @@
   <div class="box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="color:#5d275d">■ 排球裁判手勢</span><button id="refClose">X 關閉</button></div>
     <img src="referee.jpg" alt="排球裁判手勢">
+  </div>
+</div>
+
+<div id="talkModal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10;align-items:center;justify-content:center;padding:16px">
+  <div class="box talk">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="color:#5d275d">■ 精神喊話</span><button id="talkClose">X 關閉</button></div>
+    <div class="talkBody">
+      <h3>► 接發</h3>
+      <p>前排三隻盡量不要晃<br>超過肩膀就不要動或直接蹲低<br>不接的話就可以趕快喊個聲讓後面的人知道 不接又不喊聲會讓後面的人很難接</p>
+      <p>發球發右邊的話<br>左半部的人看得到球的軌跡可以幫忙喊前面後面</p>
+      <p class="key">! 基本上沒接球的人都可以幫忙喊前排後排</p>
+      <p>球發的後排的話<br>前排三隻應該趕快轉頭看球的要飛去哪裡<br>中間的應該要趕快看自己有沒有要救球<br>沒有就趕快退到自己的位置<br>不要躲球完就站在中間擋路</p>
+      <h3>► 接球</h3>
+      <p>該站哪應該都要知道<br>如果那球不確定自己要站哪可以趕快問會站同樣位置的人<br>一樣接球都要喊聲</p>
+      <p class="key">! 然後腳站穩不要用跳的</p>
+      <p>不管身高多高多矮都應該是站穩用身體的力量送<br>不是比較矮就要用跳的去補高度<br>或是比較高就站著揮手就好<br>身體起不來就是平常對牆要多加強</p>
+      <p>盡量不要動二傳的球<br>如果一傳沒接好 位置很遠<br>如果可以的話二傳要不要接都盡量喊聲<br>（這樣妳的隊友比較確定需不需要幫妳）<br>就算二傳沒喊、來不及喊（我知道很多時候真的會來不及喊）<br>大家也都要注意看情況幫她</p>
+      <h3>► 攔網</h3>
+      <p>跳上去手併攏 然後手指手掌手臂都要用力</p>
+      <p class="key">! 最重要的是手要硬 可以最大程度減少妳受傷跟碰下來的可能性</p>
+      <p>這樣可以連帶加長滯空時間還有手也會比較好發力<br>欄中下來要趕快注意看球 不要跳完攔網就慢慢走<br>除了看球也要注意走位不要擋到舉球<br>具體誰走哪邊是要跟舉球溝通一下<br>欄中如果有攔到球但往旁邊掉<br>就趕快下來接 手勾起來都好</p>
+      <p>在面對對手吊球但自己已經起跳來不及的狀況下 不要在空中硬碰那些球 球很容易亂噴<br>還有很多吊球其實後面防守的人大部分都反應的來 如果直接讓他亂噴 隊友反而碰不到球</p>
+      <p class="key">! 就趕快先喊吊球讓後面球員知道 然後趕快下來</p>
+      <p>離你很近的吊球就轉身把它墊高<br>離妳比較遠的就挑一條路線開始拉攻擊步或是找空位幫忙送球</p>
+      <h3>► 吊球</h3>
+      <p>欄中是第一個直面攻擊的人<br>球如果飛比較高那就是後排的球<br>可以幫忙喊聲讓後排有準備<br>吊球的話應該也看得到對面手形</p>
+      <p class="key">! 至少在吊的瞬間也可以幫忙喊吊球</p>
+      <p>後排有看到也能喊聲<br>不要覺得其他人看得到就不用喊 很有可能隊友來不及判斷或是被欄中擋住</p>
+      <p>旁邊攻擊手跟舉球也要注意小球<br>能撲就撲一下 球很小很低掉落速度很快只要有撲到 旁邊一定都會幫忙<br>我看比賽其實很多球就差一點<br>後排注意噴掉的 能追就追</p>
+      <p class="key">! 追到之後真的不行就墊高</p>
+      <p>球已經很後面的話先送場中間<br>球還在場內就可以直接送過去 不用想著給大砲或是舉球</p>
+      <h3>► 喊聲</h3>
+      <p class="key">! 喊聲可以幫助自己專注在球的動向上面（超級有用）</p>
+      <p>同時也可以鼓勵自己跟隊友<br>喊聲不只是123 ㄟˋ的那種 包含接球的時候可以喊我來 看到球的落點可以幫忙喊前排後排 看到吊球可以提醒隊友 也能提醒欄中趕快上去攔<br>inside/outside要不要喊都可以 沒把握不要亂喊 但接球的人當下還是自己要判斷一下<br>不喊反而氣氛很容易僵掉</p>
+      <p>不用怕大聲喊很丟臉<br>場下場上每個人都在鬼吼鬼叫 不大聲喊沒人聽得到 而且有時候隊友太專注或太急的狀況下根本也聽不到 所以盡量大聲喊<br>也不要因為自己沒打好沒接好就不講話<br>在場上打多爛都沒人會怪你 頂多賽後被檢討<br>打爛也沒差 多練習就好了<br>每一個人一開始都一樣爛 那些看起來厲害的都是有付出時間跟心思練習</p>
+      <p class="key">! 重點是專注在下一顆球上</p>
+    </div>
   </div>
 </div>
 
@@ -555,6 +598,9 @@ $('speed').onchange = e => speed = parseFloat(e.target.value);
 $('refBtn').onclick = () => $('refModal').style.display = 'flex';
 $('refClose').onclick = () => $('refModal').style.display = 'none';
 $('refModal').onclick = e => { if (e.target.id === 'refModal') $('refModal').style.display = 'none'; };
+$('talkBtn').onclick = () => $('talkModal').style.display = 'flex';
+$('talkClose').onclick = () => $('talkModal').style.display = 'none';
+$('talkModal').onclick = e => { if (e.target.id === 'talkModal') $('talkModal').style.display = 'none'; };
 
 drawArt();
 drawOpp();
