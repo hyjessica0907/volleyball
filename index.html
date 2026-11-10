@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>排球站位教學</title>
+<style>
+  :root{--bg:#f6f5f1;--card:#fff;--ink:#222;--mute:#777;--line:#ddd;--accent:#1f6feb;color-scheme:light}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink)}
+  header{padding:14px 18px 4px}
+  h1{font-size:20px;margin:0}
+  header p{margin:4px 0 0;color:var(--mute);font-size:13px}
+  .wrap{display:flex;flex-wrap:wrap;gap:16px;padding:12px 18px 24px;align-items:flex-start}
+  .court{flex:1 1 380px;max-width:500px}
+  .court svg{width:100%;height:auto;display:block;background:#2f6d4f;border-radius:10px}
+  .caption{margin-top:8px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:15px;min-height:44px;line-height:1.5}
+  .panel{flex:1 1 300px;max-width:460px;display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+  .card h2{font-size:14px;margin:0 0 8px;color:#444}
+  .row{display:flex;flex-wrap:wrap;gap:6px}
+  button{font:inherit;font-size:14px;color:#222;border:1px solid var(--line);background:#fafafa;border-radius:7px;padding:6px 10px;cursor:pointer}
+  button:hover{background:#f0f0f0}
+  button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button.play{background:#e8743b;border-color:#e8743b;color:#fff;font-weight:600;padding:8px 16px}
+  button:disabled{opacity:.5;cursor:default}
+  .pbtn{display:flex;align-items:center;gap:6px}
+  .dot{width:12px;height:12px;border-radius:50%;display:inline-block;vertical-align:-1px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td,th{padding:4px 6px;border-bottom:1px solid #eee;text-align:left}
+  tr.cur td{background:#fff4e5;font-weight:600}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:#444}
+  .note{font-size:12px;color:var(--mute);line-height:1.5}
+  ol{margin:0;padding-left:20px;font-size:13px;line-height:1.6}
+  ol li.now{color:#e8743b;font-weight:600}
+  select{font:inherit;font-size:14px;padding:4px;color:#222;background:#fff;border:1px solid var(--line);border-radius:6px}
+  svg text{font-family:inherit;pointer-events:none}
+  svg text.halo{paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}
+  .player{cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏐 排球站位教學</h1>
+  <p>換位規則：前排（左→右）<b>大・中・舉</b>，後排（左→右）<b>大・自・舉</b>（中＝欄中、自＝自由）</p>
+</header>
+
+<div class="wrap">
+  <div class="court">
+    <svg id="svg" viewBox="0 0 470 780">
+      <rect x="38" y="60" width="324" height="648" fill="#e9a25f" stroke="#fff" stroke-width="3"/>
+      <line x1="38" y1="276" x2="362" y2="276" stroke="#fff" stroke-width="2"/>
+      <line x1="38" y1="492" x2="362" y2="492" stroke="#fff" stroke-width="2"/>
+      <rect x="38" y="60" width="324" height="324" fill="#000" opacity=".06"/>
+      <line x1="22" y1="384" x2="378" y2="384" stroke="#fff" stroke-width="5"/>
+      <line x1="22" y1="384" x2="378" y2="384" stroke="#333" stroke-width="2" stroke-dasharray="3 3"/>
+      <rect x="380" y="470" width="82" height="190" rx="10" fill="#fff" opacity=".12" stroke="#fff" stroke-dasharray="5 4"/>
+      <text x="421" y="492" fill="#fff" font-size="13" text-anchor="middle" font-weight="700">場邊</text>
+      <text x="421" y="648" fill="#fff" font-size="10" text-anchor="middle" opacity=".85">換人區</text>
+      <text x="200" y="40" fill="#fff" font-size="14" text-anchor="middle" font-weight="700">對方場地</text>
+      <text x="200" y="772" fill="#fff" font-size="14" text-anchor="middle" font-weight="700">我方場地</text>
+      <text x="376" y="376" fill="#fff" font-size="11" text-anchor="end" font-weight="700">球網</text>
+      <g id="opp"></g>
+      <g id="trails"></g>
+      <rect id="block" x="240" y="378" width="86" height="12" rx="6" fill="#fff" opacity=".9" visibility="hidden"/>
+      <g id="players"></g>
+      <ellipse id="shadow" rx="8" ry="4" fill="#000" opacity=".3" visibility="hidden"/>
+      <g id="ball" visibility="hidden">
+        <clipPath id="ballClip"><circle r="9"/></clipPath>
+        <circle r="9" fill="#f7b900"/>
+        <g clip-path="url(#ballClip)">
+          <path d="M-10 -3 C-4 -1 2 -6 10 -9 L10 -3 C3 -1 -3 4 -10 3 Z" fill="#2340c4"/>
+          <path d="M-2 10 C-1 4 3 1 10 2 L10 7 C5 6 3 8 3 10 Z" fill="#2340c4"/>
+          <path d="M-10 -3 C-6 -7 -6 -9 -5 -10" fill="none" stroke="#b07f00" stroke-width=".7"/>
+          <path d="M0 -10 C1 -6 0 -3 -2 1 C-3 4 -2 7 -2 10" fill="none" stroke="#b07f00" stroke-width=".7"/>
+        </g>
+        <circle r="9" fill="none" stroke="#1a2e8a" stroke-width="1.2"/>
+      </g>
+    </svg>
+    <div class="caption" id="caption"></div>
+  </div>
+
+  <div class="panel">
+    <div><button id="refBtn">🧑‍⚖️ 裁判手勢</button></div>
+    <div class="card">
+      <h2>① 選你的位子</h2>
+      <div class="row" id="pickRow"></div>
+      <p class="note" style="margin:8px 0 0">也可以直接點場上的球員。</p>
+    </div>
+
+    <div class="card">
+      <h2>② 哪一方發球</h2>
+      <div class="row">
+        <button id="sideUs">我方發球</button>
+        <button id="sideThem">對方發球（我方接發）</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>③ 對方打回來的球</h2>
+      <div class="row" id="atkRow"></div>
+    </div>
+
+    <div class="card">
+      <h2>④ 輪轉</h2>
+      <div class="row" id="rotRow"></div>
+      <div class="row" style="margin-top:10px;align-items:center">
+        <button class="play" id="playBtn">▶ 播放</button>
+        <button id="resetBtn">↺ 回到起始</button>
+        <button id="nextBtn">輪轉下一輪 ⟳</button>
+        <label style="font-size:13px">速度
+          <select id="speed"><option value="0.5">慢</option><option value="1" selected>正常</option><option value="1.6">快</option></select>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>步驟</h2>
+      <ol id="steps"></ol>
+    </div>
+
+    <div class="card">
+      <h2>你的位置（6 個輪轉）</h2>
+      <div id="myInfo" class="note">先選你的位子。</div>
+    </div>
+
+    <div class="card">
+      <div class="legend">
+        <span><span class="dot" style="background:#e8743b"></span> 大（大砲）</span>
+        <span><span class="dot" style="background:#3b7be8"></span> 中（欄中）</span>
+        <span><span class="dot" style="background:#d9a400"></span> 自（自由）</span>
+        <span><span class="dot" style="background:#2ea86b"></span> 舉（舉球）</span>
+      </div>
+      <p class="note" style="margin:8px 0 0">輪轉順序：大砲①→舉球①→欄中①→大砲②→舉球②→欄中②（對角同職位），第 1 輪由大砲① 發球。欄中轉到後排就換自由上場、自己到場邊等；輪到欄中發球的那一輪，欄中自己發，自由這球打完再換。虛線是跑動路線，粗線是你。</p>
+    </div>
+  </div>
+</div>
+
+<div id="refModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:10px;padding:12px;max-width:720px;width:100%;position:relative">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b>排球裁判手勢</b><button id="refClose">✕ 關閉</button></div>
+    <img src="referee.jpg" alt="排球裁判手勢" style="width:100%;height:auto;display:block">
+  </div>
+</div>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+const P = [
+  {g:'大', name:'大砲①'}, {g:'舉', name:'舉球①'}, {g:'中', name:'欄中①'},
+  {g:'大', name:'大砲②'}, {g:'舉', name:'舉球②'}, {g:'中', name:'欄中②'},
+  {g:'自', name:'自由'}
+];
+const LIB = 6;
+const COLORS = {'大':'#e8743b','中':'#3b7be8','自':'#d9a400','舉':'#2ea86b'};
+const ROT = {4:[92,460],3:[200,460],2:[308,460],5:[92,620],6:[200,640],1:[308,620]};
+const POSNAME = {1:'後排右（發球位）',2:'前排右',3:'前排中',4:'前排左',5:'後排左',6:'後排中'};
+const BASE_F = {'大':[92,462],'中':[200,462],'舉':[308,462]};
+const BASE_B = {'大':[88,618],'自':[200,648],'舉':[312,618]};
+const BASENAME_F = {'大':'前排左','中':'前排中','舉':'前排右'};
+const BASENAME_B = {'大':'後排左','自':'後排中','舉':'後排右'};
+const BENCH = [421, 565];
+const SERVE = [308, 738];
+const ATK = {
+  line:  {name:'直線', text:'對方沿著右邊邊線打直線，<b>後排右的舉</b>守直線。'},
+  cross: {name:'斜線', text:'對方斜斜打到左後方，<b>後排左的大砲</b>防斜線。'},
+  tip:   {name:'小球', text:'對方吊小球在攔網後面，<b>後排右的舉</b>往前衝救球。'}
+};
+
+let rot = 1, side = 'us', atk = 'cross', sel = null, speed = 1, token = 0, playing = false;
+let cur = [], lu = null;
+
+const posOf = (i, r = rot) => (((i - (r - 1)) % 6) + 6) % 6 + 1;
+const isFront = p => p >= 2 && p <= 4;
+
+/* 每輪上場名單：欄中在後排 → 自由換上（輪到欄中發球時例外） */
+function lineup(r = rot, s = side){
+  const pos = [];
+  for (let i = 0; i < 6; i++) pos[i] = posOf(i, r);
+  const bm = [2,5].find(i => !isFront(pos[i]));
+  const serveM = s === 'us' && pos[bm] === 1;
+  if (serveM) pos[LIB] = null;
+  else { pos[LIB] = pos[bm]; pos[bm] = null; }
+  return {pos, serveM, bm};
+}
+const onCourt = i => lu.pos[i] != null;
+const whoAt = p => lu.pos.findIndex(x => x === p);
+function startSpot(i){ return onCourt(i) ? ROT[lu.pos[i]].slice() : BENCH.slice(); }
+function roleKey(i){ const f = isFront(lu.pos[i]); let k = P[i].g; if (!f && k === '中') k = '自'; return k; }
+function baseSpot(i){
+  if (!onCourt(i)) return BENCH.slice();
+  return (isFront(lu.pos[i]) ? BASE_F : BASE_B)[roleKey(i)].slice();
+}
+function front(g){ return P.findIndex((_, i) => onCourt(i) && isFront(lu.pos[i]) && P[i].g === g); }
+function back(k){ return P.findIndex((_, i) => onCourt(i) && !isFront(lu.pos[i]) && roleKey(i) === k); }
+
+const $ = id => document.getElementById(id);
+const caption = t => $('caption').innerHTML = t;
+function nm(i){ return `<b style="color:${COLORS[P[i].g]}">${P[i].name}</b>`; }
+
+/* ---------- 繪圖 ---------- */
+function drawOpp(){
+  const o = $('opp');
+  [[92,324],[200,324],[308,324],[92,150],[200,130],[308,150]].forEach(([x,y]) => {
+    const c = document.createElementNS(NS,'circle');
+    c.setAttribute('cx',x); c.setAttribute('cy',y); c.setAttribute('r',14);
+    c.setAttribute('fill','#9aa3ad'); c.setAttribute('opacity','.8');
+    o.appendChild(c);
+  });
+  const s = document.createElementNS(NS,'circle');
+  s.id = 'oppServer'; s.setAttribute('cx',110); s.setAttribute('cy',36); s.setAttribute('r',14);
+  s.setAttribute('fill','#9aa3ad'); s.setAttribute('visibility','hidden');
+  o.appendChild(s);
+}
+
+function el(tag, attrs, parent){
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e); return e;
+}
+
+function render(){
+  const g = $('players');
+  g.innerHTML = '';
+  P.forEach((p, i) => {
+    const [x,y] = cur[i];
+    const pg = el('g', {class:'player'}, g);
+    pg.addEventListener('click', () => pick(i));
+    if (sel === i){
+      el('circle', {cx:x, cy:y, r:23, fill:'none', stroke:'#111', 'stroke-width':3}, pg);
+      const t = el('text', {x, y:y-28, 'text-anchor':'middle', fill:'#111', 'font-size':14, 'font-weight':800, class:'halo'}, pg);
+      t.textContent = '你';
+    }
+    el('circle', {cx:x, cy:y, r:17, fill:COLORS[p.g], stroke:'#fff', 'stroke-width':2}, pg);
+    const t = el('text', {x, y:y+6, 'text-anchor':'middle', fill: p.g === '自' ? '#222' : '#fff', 'font-size':17, 'font-weight':700}, pg);
+    t.textContent = p.g;
+    const tail = p.name.slice(-1);
+    if (tail === '①' || tail === '②'){
+      const n = el('text', {x, y:y+31, 'text-anchor':'middle', fill:'#222', 'font-size':10, 'font-weight':700, class:'halo'}, pg);
+      n.textContent = tail;
+    }
+  });
+}
+
+function addTrail(i, a, b){
+  if (Math.hypot(a[0]-b[0], a[1]-b[1]) < 4) return;
+  el('line', {x1:a[0], y1:a[1], x2:b[0], y2:b[1], stroke:COLORS[P[i].g],
+    'stroke-width': sel === i ? 4 : 2, 'stroke-dasharray':'6 5', opacity: sel === i ? .95 : .6}, $('trails'));
+}
+
+function setBall(x, y, h){
+  $('ball').setAttribute('visibility','visible'); $('shadow').setAttribute('visibility','visible');
+  $('ball').setAttribute('transform', `translate(${x},${y - h}) scale(${1 + h/220})`);
+  $('shadow').setAttribute('cx', x); $('shadow').setAttribute('cy', y + 6);
+}
+function hideBall(){ $('ball').setAttribute('visibility','hidden'); $('shadow').setAttribute('visibility','hidden'); }
+
+/* ---------- 動畫 ---------- */
+const ease = u => u < .5 ? 2*u*u : 1 - Math.pow(-2*u + 2, 2) / 2;
+function tween(dur, moves = [], ball = null){
+  const my = token;
+  moves.forEach(m => addTrail(m.i, cur[m.i], m.to));
+  const from = moves.map(m => cur[m.i].slice());
+  return new Promise(res => {
+    const start = performance.now();
+    function frame(now){
+      if (my !== token) return res(false);
+      const t = Math.min(1, (now - start) / (dur * 1000 / speed));
+      moves.forEach((m, k) => {
+        const d = m.delay || 0;
+        const u = ease(Math.max(0, Math.min(1, (t - d) / (1 - d))));
+        cur[m.i] = [from[k][0] + (m.to[0]-from[k][0])*u, from[k][1] + (m.to[1]-from[k][1])*u];
+      });
+      if (ball){
+        setBall(ball.from[0] + (ball.to[0]-ball.from[0])*t, ball.from[1] + (ball.to[1]-ball.from[1])*t, ball.h * 4 * t * (1 - t));
+      }
+      render();
+      if (t < 1) requestAnimationFrame(frame); else res(true);
+    }
+    requestAnimationFrame(frame);
+  });
+}
+function wait(ms){ const my = token; return new Promise(res => setTimeout(() => res(my === token), ms / speed)); }
+
+let stepItems = [];
+function setSteps(list){ $('steps').innerHTML = list.map(s => `<li>${s}</li>`).join(''); stepItems = [...$('steps').children]; }
+function stepNow(k){ stepItems.forEach((li, j) => li.classList.toggle('now', j === k)); }
+
+function defRole(i){
+  if (!onCourt(i)) return '在場邊等換人';
+  const f = isFront(lu.pos[i]), k = roleKey(i);
+  if (f) return {'舉':'在右邊攔網','中':'跑到右邊跟舉一起攔網，攔完退到三米線準備攻擊','大':'退離網子，補斜線短球'}[k];
+  return {'大':'後排左，防斜線','舉':'後排右，防直線和小球','自':'後排中間偏深，防深球'}[k];
+}
+function selText(){
+  if (sel === null) return '';
+  return `<br>👉 你（${nm(sel)}）：${defRole(sel)}。`;
+}
+
+const DEF_STEPS = ['對方接起來舉球，我方擺防守','對方攻擊，欄中上網攔網','防守起球'];
+
+async function defend(k0, from){
+  const S = front('舉'), M = front('中'), OH = front('大');
+  const BOH = back('大'), BS = back('舉'), BM = back('自');
+  stepNow(k0);
+  caption(`對方把球接起來準備攻擊（從我方右邊打過來）。${nm(M)} 往右跑去攔網，大家擺好防守站位。`);
+  const mv = [
+    {i:S, to:[300,448]}, {i:M, to:[250,448], delay:.1}, {i:OH, to:[85,500]},
+    {i:BOH, to:[80,594]}, {i:BM, to:[205,668]}, {i:BS, to:[330,606]}
+  ];
+  if (!await tween(1.1, mv, {from, to:[205,322], h:110})) return;
+  if (!await tween(0.8, [], {from:[205,322], to:[302,334], h:90})) return;
+
+  stepNow(k0 + 1);
+  if (!await tween(0.35, [{i:S, to:[305,410]}, {i:M, to:[262,410]}])) return;
+  $('block').setAttribute('visibility','visible');
+  caption(`${nm(M)} 和 ${nm(S)} 跳起來攔網！` + ATK[atk].text);
+  const T = {line:{to:[336,634], d:BS, h:30, dur:.5}, cross:{to:[82,598], d:BOH, h:30, dur:.5}, tip:{to:[262,480], d:BS, h:55, dur:.8}}[atk];
+  const extra = atk === 'tip' ? [{i:BM, to:[290,660], delay:.2}] : [];
+  if (!await tween(T.dur, [{i:T.d, to:T.to, delay:.05}, ...extra], {from:[302,345], to:T.to, h:T.h})) return;
+  $('block').setAttribute('visibility','hidden');
+  tween(0.7, [{i:S, to:[285,432]}, {i:M, to:[188,496]}]);
+
+  stepNow(k0 + 2);
+  caption(`${nm(T.d)} 防起來了！${nm(M)} 攔完網退到三米線準備攻擊，不站在舉球員前面，讓出路給 ${nm(S)} 接球舉球，準備反攻。${selText()}`);
+  await tween(0.9, [], {from:T.to, to:[285,422], h:130});
+}
+
+async function playUs(){
+  const sv = whoAt(1);
+  setSteps(['發球員走到端線後','發球！大家換位', ...DEF_STEPS]);
+  stepNow(0);
+  caption(`後排右的 ${nm(sv)} 走到端線後準備發球。` + (lu.serveM ? `<br>這輪輪到欄中發球，自由先在場邊等，這球打完才換上。` : ''));
+  if (!await tween(0.8, [{i:sv, to:SERVE}])) return;
+  if (!await wait(300)) return;
+
+  stepNow(1);
+  caption('發球！球一離手，大家馬上換到自己的位置：前排 <b>大・中・舉</b>，後排 <b>大・自・舉</b>。');
+  const moves = P.map((_, i) => i).filter(onCourt).map(i => ({i, to: baseSpot(i), delay: i === sv ? .35 : .15}));
+  if (!await tween(1.5, moves, {from:[308,725], to:[170,170], h:150})) return;
+  if (!await wait(400)) return;
+  await defend(2, [170,170]);
+}
+
+async function playThem(){
+  const S = front('舉'), OH = front('大'), M = front('中'), passer = LIB;
+  const passSpot = [170,600], setSpot = [285,414];
+  setSteps(['對方發球，站輪轉位置接發','自由接一傳，舉球員跑到網前右側','欄中跑快攻牽制','舉給左邊的大砲','大砲扣球！', ...DEF_STEPS]);
+  $('oppServer').setAttribute('visibility','visible');
+
+  stepNow(0);
+  caption('對方發球。發球前要照輪轉位置站，<b>不能提早換位</b>。');
+  setBall(110, 36, 0);
+  if (!await wait(900)) return;
+
+  stepNow(1);
+  caption(`球過網！${nm(passer)} 接一傳，前排的 ${nm(S)} 跑到網前右側準備舉球。`);
+  const others = [back('大'), back('舉')];
+  const mv1 = [
+    {i:passer, to:passSpot, delay:.3}, {i:S, to:setSpot, delay:.35},
+    {i:OH, to:[62,505], delay:.35}, {i:M, to:[205,480], delay:.35},
+    ...others.map(i => ({i, to: baseSpot(i), delay:.4}))
+  ];
+  if (!await tween(1.4, mv1, {from:[110,36], to:passSpot, h:140})) return;
+
+  stepNow(2);
+  caption(`一傳到位。${nm(M)} 往網前衝跑快攻，牽制對方攔網。`);
+  if (!await tween(0.9, [{i:M, to:[215,414], delay:.1}, {i:OH, to:[78,470], delay:.3}], {from:passSpot, to:[setSpot[0], setSpot[1]-6], h:110})) return;
+
+  stepNow(3);
+  caption(`${nm(S)} 把球舉給左前的 ${nm(OH)}，大砲助跑起跳。`);
+  if (!await tween(0.9, [{i:OH, to:[96,416], delay:.35}], {from:[setSpot[0], setSpot[1]-6], to:[96,402], h:95})) return;
+
+  stepNow(4);
+  caption(`${nm(OH)} 扣球！大家回到站位，準備對方打回來。`);
+  if (!await tween(0.45, [], {from:[96,402], to:[250,170], h:25})) return;
+  const back2 = P.map((_, i) => i).filter(onCourt).map(i => ({i, to: baseSpot(i)}));
+  if (!await tween(0.9, back2)) return;
+  await defend(5, [250,170]);
+}
+
+async function play(){
+  reset(false);
+  playing = true; updateBtns();
+  const my = token;
+  if (side === 'us') await playUs(); else await playThem();
+  if (my === token){ playing = false; updateBtns(); }
+}
+
+async function nextRot(){
+  reset(false);
+  const old = lu;
+  rot = rot % 6 + 1;
+  lu = lineup();
+  playing = true; updateBtns();
+  const my = token;
+  const outs = [], ins = [];
+  P.forEach((_, i) => {
+    if (old.pos[i] != null && lu.pos[i] == null) outs.push(i);
+    if (old.pos[i] == null && lu.pos[i] != null) ins.push(i);
+  });
+  let msg = `輪轉！大家順時針移一格，現在是第 ${rot} 輪，後排右的 ${nm(whoAt(1))} 發球。`;
+  if (outs.length || ins.length){
+    msg += '<br>🔄 換人：' + [...outs.map(i => `${nm(i)} 下場到場邊`), ...ins.map(i => `${nm(i)} 上場`)].join('、') + '。';
+  }
+  if (lu.serveM) msg += '<br>這輪輪到欄中發球，自由先在場邊等。';
+  caption(msg);
+  await tween(1.4, P.map((_, i) => ({i, to: startSpot(i)})));
+  if (my === token){ playing = false; updateBtns(); renderInfo(); }
+}
+
+/* ---------- 控制 ---------- */
+function reset(clearCaption = true){
+  token++;
+  playing = false;
+  lu = lineup();
+  cur = P.map((_, i) => startSpot(i));
+  $('trails').innerHTML = '';
+  hideBall();
+  $('block').setAttribute('visibility','hidden');
+  $('oppServer').setAttribute('visibility','hidden');
+  stepItems = []; $('steps').innerHTML = '<li style="color:#999">按「播放」開始</li>';
+  render(); updateBtns(); renderInfo();
+  if (clearCaption){
+    if (sel === null) caption('👆 先點場上任一位球員（或右邊按鈕）選你的位子，再選發球方和對方回擊，按 ▶ 播放。');
+    else caption(`你是 ${nm(sel)}，現在${onCourt(sel) ? '在' + POSNAME[lu.pos[sel]] : '在場邊等'}。按 ▶ 播放看跑位。`
+      + (lu.serveM ? '<br>這輪輪到欄中發球，自由先在場邊等。' : ''));
+  }
+}
+
+function pick(i){ if (playing) return; sel = (sel === i) ? null : i; reset(); }
+
+function updateBtns(){
+  $('pickRow').innerHTML = '';
+  P.forEach((p, i) => {
+    const b = document.createElement('button');
+    b.className = 'pbtn' + (sel === i ? ' on' : '');
+    b.innerHTML = `<span class="dot" style="background:${COLORS[p.g]}"></span>${p.name}`;
+    b.onclick = () => pick(i); b.disabled = playing;
+    $('pickRow').appendChild(b);
+  });
+  $('atkRow').innerHTML = '';
+  for (const k in ATK){
+    const b = document.createElement('button');
+    b.textContent = ATK[k].name; b.className = atk === k ? 'on' : ''; b.disabled = playing;
+    b.onclick = () => { atk = k; reset(); };
+    $('atkRow').appendChild(b);
+  }
+  $('rotRow').innerHTML = '';
+  for (let r = 1; r <= 6; r++){
+    const b = document.createElement('button');
+    b.textContent = `第${r}輪`;
+    b.title = `${P[P.findIndex((_, i) => i < 6 && posOf(i, r) === 1)].name} 發球`;
+    b.className = r === rot ? 'on' : ''; b.disabled = playing;
+    b.onclick = () => { rot = r; reset(); };
+    $('rotRow').appendChild(b);
+  }
+  $('sideUs').className = side === 'us' ? 'on' : '';
+  $('sideThem').className = side === 'them' ? 'on' : '';
+  ['sideUs','sideThem','nextBtn','playBtn'].forEach(id => $(id).disabled = playing);
+}
+
+function renderInfo(){
+  if (sel === null){ $('myInfo').innerHTML = '先選你的位子。'; return; }
+  let html = `<p style="margin:0 0 6px">目前：${side === 'us' ? '我方發球' : '對方發球'}</p><table><tr><th>輪轉</th><th>發球前站</th><th>換位後</th></tr>`;
+  for (let r = 1; r <= 6; r++){
+    const L = lineup(r);
+    const p = L.pos[sel];
+    let a, b;
+    if (p == null){ a = '場邊'; b = '場邊（等換人）'; }
+    else {
+      const f = isFront(p); let k = P[sel].g; if (!f && k === '中') k = '自';
+      a = POSNAME[p] + (p === 1 && side === 'us' ? '・發球' : '');
+      b = `<span class="dot" style="background:${COLORS[P[sel].g]}"></span> ${(f ? BASENAME_F : BASENAME_B)[k]}`;
+    }
+    html += `<tr class="${r === rot ? 'cur' : ''}"><td>第${r}輪</td><td>${a}</td><td>${b}</td></tr>`;
+  }
+  $('myInfo').innerHTML = html + '</table>';
+}
+
+$('sideUs').onclick = () => { side = 'us'; reset(); };
+$('sideThem').onclick = () => { side = 'them'; reset(); };
+$('playBtn').onclick = play;
+$('resetBtn').onclick = () => reset();
+$('nextBtn').onclick = nextRot;
+$('speed').onchange = e => speed = parseFloat(e.target.value);
+
+$('refBtn').onclick = () => $('refModal').style.display = 'flex';
+$('refClose').onclick = () => $('refModal').style.display = 'none';
+$('refModal').onclick = e => { if (e.target.id === 'refModal') $('refModal').style.display = 'none'; };
+
+drawOpp();
+reset();
+</script>
+</body>
+</html>
