@@ -76,6 +76,11 @@
   svg text{font-family:"Cubic11",monospace;pointer-events:none;font-weight:normal!important}
   svg text.halo{paint-order:stroke;stroke:#000;stroke-width:3px;stroke-linejoin:miter;fill:#fff}
   .player{cursor:pointer}
+  .hop{animation:hop .8s steps(1) infinite}
+  .hop.d1{animation-delay:.27s}.hop.d2{animation-delay:.53s}
+  @keyframes hop{50%{transform:translateY(-5px)}}
+  .flash{animation:flash 3s steps(1) infinite}
+  @keyframes flash{0%,92%{opacity:0}93%,97%{opacity:1}}
   #talkModal .box{background:var(--paper);color:var(--ink);border:4px solid #000;box-shadow:8px 8px 0 #000;padding:14px;max-width:720px;width:100%;max-height:88vh;display:flex;flex-direction:column}
   .talkBody{overflow-y:auto;font-size:15px;line-height:1.8;padding-right:6px}
   .talkBody h3{margin:16px 0 6px;font-weight:normal;font-size:18px;color:#fff;background:var(--red);display:inline-block;padding:2px 10px;box-shadow:3px 3px 0 #000}
@@ -95,7 +100,7 @@
 
 <div class="wrap">
   <div class="court">
-    <svg id="svg" viewBox="0 0 470 780" shape-rendering="crispEdges">
+    <svg id="svg" viewBox="0 0 470 870" shape-rendering="crispEdges">
       <rect x="38" y="60" width="324" height="648" fill="#e39a55" stroke="#f4f4f4" stroke-width="4"/>
       <rect x="38" y="60" width="324" height="324" fill="#000" opacity=".08"/>
       <g id="floor"></g>
@@ -109,6 +114,7 @@
       <text x="200" y="42" fill="#ffcd75" font-size="16" text-anchor="middle" class="halo" style="fill:#ffcd75">對方場地</text>
       <text x="200" y="770" fill="#ffcd75" font-size="16" text-anchor="middle" class="halo" style="fill:#ffcd75">我方場地</text>
       <text x="378" y="372" font-size="12" text-anchor="end" class="halo">球網</text>
+      <g id="deco"></g>
       <g id="opp"></g>
       <g id="trails"></g>
       <rect id="block" x="240" y="377" width="86" height="14" fill="#f4f4f4" stroke="#000" stroke-width="2" visibility="hidden"/>
@@ -315,6 +321,91 @@ function drawArt(){
   // 球網格子
   const n = $('netpix');
   for (let x = 20; x < 380; x += 8) el('rect', {x, y:382, width:4, height:4, fill:'#f4f4f4'}, n);
+}
+
+
+/* ---------- 場邊人物：攝影師、教練席、啦啦隊 ---------- */
+const PEOPLE_COL = {H:'#1a1c2c', S:'#f2c094', C:'#566c86', K:'#1a1c2c', G:'#41a6f6', L:'#29366f',
+  P:'#5d275d', W:'#f4f4f4', R:'#b13e53', Y:'#ffcd75', B:'#8b5a2b',
+  N:'#6b3e26', Q:'#f58fa8', M:'#ef7d9a'};
+const SPRITES = {
+  photographer: [
+    '..NNNNNN..',
+    '.NNNNNNNN.',
+    'NNSSSSSSNN',
+    'NSSKSSKSSN',
+    'NSQSSSSQSN',
+    'N.SSSSSS.N',
+    '..WWKKKK..',
+    '.SWWKGGK..',
+    '..WWKKKK..',
+    '..MMMMMM..',
+    '...S..S...',
+    '...K..K...'
+  ],
+  coach: [
+    '...HHHH...',
+    '...SSSS...',
+    '...SSSS...',
+    '..PPPPWW..',
+    '.PPPPPWW..',
+    '.SPPPPWW..',
+    '..PPPP....',
+    '..LLLLLL..',
+    '......LL..',
+    '......KK..'
+  ],
+  cheer: [
+    'YY......YY',
+    'YYY.HH.YYY',
+    '.S.HSSH.S.',
+    '..SSSSSS..',
+    '...RRRR...',
+    '...RWWR...',
+    '..RRRRRR..',
+    '.RRRRRRRR.',
+    '...S..S...',
+    '...K..K...'
+  ]
+};
+function sprite(g, name, x, y, size){
+  SPRITES[name].forEach((row, r) => [...row].forEach((ch, c) => {
+    if (PEOPLE_COL[ch]) el('rect', {x:x + c*size, y:y + r*size, width:size, height:size, fill:PEOPLE_COL[ch]}, g);
+  }));
+}
+const COACH_LINES = ['專注下一球！','大聲喊聲！','腳站穩送球！','攔網手要硬！','不接就要喊！','看到吊球要喊！','欄中快退！','好球！再一顆！'];
+function drawDeco(){
+  const d = $('deco');
+  // 攝影師（左下角，女生 Q 版）
+  sprite(d, 'photographer', 12, 776, 4);
+  const fl = el('g', {class:'flash'}, d);
+  el('rect', {x:56, y:804, width:8, height:8, fill:'#fff'}, fl);
+  el('rect', {x:64, y:800, width:4, height:4, fill:'#fff'}, fl);
+  el('rect', {x:64, y:812, width:4, height:4, fill:'#fff'}, fl);
+  const t = el('text', {x:32, y:842, 'text-anchor':'middle', 'font-size':12, class:'halo'}, d); t.textContent = '攝影師';
+  // 教練席（右側場邊，換人區上面）
+  el('rect', {x:384, y:372, width:78, height:90, fill:'#1a1c2c', opacity:.35, stroke:'#f4f4f4', 'stroke-width':2, 'stroke-dasharray':'6 6'}, d);
+  const ct = el('text', {x:423, y:390, 'text-anchor':'middle', 'font-size':13, style:'fill:#ffcd75'}, d); ct.textContent = '教練席';
+  el('rect', {x:396, y:432, width:56, height:8, fill:PEOPLE_COL.B, stroke:'#000', 'stroke-width':2}, d);
+  el('rect', {x:400, y:440, width:6, height:12, fill:PEOPLE_COL.B}, d);
+  el('rect', {x:442, y:440, width:6, height:12, fill:PEOPLE_COL.B}, d);
+  sprite(d, 'coach', 403, 396, 4);
+  // 教練對話框
+  el('rect', {x:376, y:304, width:90, height:40, fill:'#f4f4f4', stroke:'#000', 'stroke-width':3}, d);
+  el('rect', {x:414, y:343, width:8, height:6, fill:'#f4f4f4'}, d);
+  el('rect', {x:414, y:349, width:4, height:5, fill:'#f4f4f4'}, d);
+  el('rect', {x:410, y:343, width:4, height:12, fill:'#000'}, d);
+  el('rect', {x:418, y:349, width:4, height:6, fill:'#000'}, d);
+  el('rect', {x:414, y:355, width:4, height:3, fill:'#000'}, d);
+  const say = el('text', {x:421, y:329, 'text-anchor':'middle', 'font-size':12, fill:'#1a1c2c', id:'coachSay'}, d);
+  let k = 0;
+  say.textContent = COACH_LINES[0];
+  setInterval(() => { k = (k + 1) % COACH_LINES.length; say.textContent = COACH_LINES[k]; }, 2600);
+  // 啦啦隊（底線後方）
+  [150, 215, 280, 345].forEach((x, n) => {
+    const g = el('g', {class:'hop d' + (n % 3)}, d);
+    sprite(g, 'cheer', x, 796, 4);
+  });
 }
 
 /* ---------- 繪圖 ---------- */
@@ -697,6 +788,7 @@ $('talkClose').onclick = () => $('talkModal').style.display = 'none';
 $('talkModal').onclick = e => { if (e.target.id === 'talkModal') $('talkModal').style.display = 'none'; };
 
 drawArt();
+drawDeco();
 drawOpp();
 reset();
 </script>
