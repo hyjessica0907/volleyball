@@ -411,8 +411,9 @@ async function playUs(){
 
 async function playThem(){
   const S = front('舉'), OH = front('大'), M = front('中'), passer = LIB;
-  const passSpot = [170,600], setSpot = [285,414];
-  setSteps(['對方發球，站輪轉位置接發','自由接一傳，舉球員跑到網前右側','欄中跑快攻牽制','舉給左邊的大砲','大砲扣球！', ...DEF_STEPS]);
+  const lp = ROT[lu.pos[LIB]];
+  const passSpot = [lp[0] + (lp[0] > 250 ? -20 : lp[0] < 150 ? 20 : -10), lp[1] - 14], setSpot = [285,414];
+  setSteps(['對方發球，站輪轉位置接發','後排先在原位接一傳，舉球員跑到網前右側','一傳到位，後排換位、欄中跑快攻','舉給左邊的大砲','大砲扣球！', ...DEF_STEPS]);
   $('oppServer').setAttribute('visibility','visible');
 
   stepNow(0);
@@ -421,18 +422,17 @@ async function playThem(){
   if (!await wait(900)) return;
 
   stepNow(1);
-  caption(`球過網！${nm(passer)} 接一傳，前排的 ${nm(S)} 跑到網前右側準備舉球。`);
+  caption(`球過網！後排<b>先不換位</b>，在輪轉位置把第一球接好。${nm(passer)} 接一傳，前排的 ${nm(S)} 跑到網前右側準備舉球。`);
   const others = [back('大'), back('舉')];
   const mv1 = [
     {i:passer, to:passSpot, delay:.3}, {i:S, to:setSpot, delay:.35},
-    {i:OH, to:[62,505], delay:.35}, {i:M, to:[205,480], delay:.35},
-    ...others.map(i => ({i, to: baseSpot(i), delay:.4}))
+    {i:OH, to:[62,505], delay:.35}, {i:M, to:[205,480], delay:.35}
   ];
   if (!await tween(1.4, mv1, {from:[110,36], to:passSpot, h:140})) return;
 
   stepNow(2);
-  caption(`一傳到位。${nm(M)} 往網前衝跑快攻，牽制對方攔網。`);
-  if (!await tween(0.9, [{i:M, to:[215,414], delay:.1}, {i:OH, to:[78,470], delay:.3}], {from:passSpot, to:[setSpot[0], setSpot[1]-6], h:110})) return;
+  caption(`一傳到位！<b>接完這球後排才換位</b>：大到左後、自到中後、舉到右後。${nm(M)} 往網前衝跑快攻，牽制對方攔網。`);
+  if (!await tween(1.0, [{i:M, to:[215,414], delay:.1}, {i:OH, to:[78,470], delay:.3}, {i:passer, to: baseSpot(passer), delay:.15}, ...others.map(i => ({i, to: baseSpot(i), delay:.15}))], {from:passSpot, to:[setSpot[0], setSpot[1]-6], h:110})) return;
 
   stepNow(3);
   caption(`${nm(S)} 把球舉給左前的 ${nm(OH)}，大砲助跑起跳。`);
