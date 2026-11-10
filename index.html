@@ -8,14 +8,28 @@
   :root{--bg:#f6f5f1;--card:#fff;--ink:#222;--mute:#777;--line:#ddd;--accent:#1f6feb;color-scheme:light}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;background:var(--bg);color:var(--ink)}
-  header{padding:14px 18px 4px}
+  header{padding:16px 20px 4px;max-width:1200px;margin:0 auto}
   h1{font-size:20px;margin:0}
   header p{margin:4px 0 0;color:var(--mute);font-size:13px}
-  .wrap{display:flex;flex-wrap:wrap;gap:16px;padding:12px 18px 24px;align-items:flex-start}
-  .court{flex:1 1 380px;max-width:500px}
-  .court svg{width:100%;height:auto;display:block;background:#2f6d4f;border-radius:10px}
+  .wrap{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(340px,1fr);gap:20px;padding:12px 20px 32px;align-items:start}
+  .court{position:sticky;top:12px;display:flex;flex-direction:column;align-items:center}
+  .court svg{width:100%;max-height:calc(100vh - 120px);height:auto;display:block;background:#2f6d4f;border-radius:12px}
+  .court .caption{width:100%}
   .caption{margin-top:8px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:15px;min-height:44px;line-height:1.5}
-  .panel{flex:1 1 300px;max-width:460px;display:flex;flex-direction:column;gap:12px}
+  .panel{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-content:start}
+  .panel > *{grid-column:span 2}
+  .panel > .half{grid-column:span 1}
+  @media (max-width:1100px){ .panel > .half{grid-column:span 2} }
+  @media (max-width:820px){
+    .wrap{grid-template-columns:1fr;padding:8px 10px 24px;gap:12px}
+    header{padding:12px 12px 2px}
+    h1{font-size:18px}
+    .court{position:static}
+    .court svg{max-height:none}
+    .caption{font-size:14px}
+    button{font-size:13px;padding:6px 9px}
+    .card{padding:10px}
+  }
   .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
   .card h2{font-size:14px;margin:0 0 8px;color:#444}
   .row{display:flex;flex-wrap:wrap;gap:6px}
@@ -88,7 +102,7 @@
       <p class="note" style="margin:8px 0 0">也可以直接點場上的球員。</p>
     </div>
 
-    <div class="card">
+    <div class="card half">
       <h2>② 哪一方發球</h2>
       <div class="row">
         <button id="sideUs">我方發球</button>
@@ -96,7 +110,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card half">
       <h2>③ 對方打回來的球</h2>
       <div class="row" id="atkRow"></div>
     </div>
