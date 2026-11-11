@@ -81,6 +81,7 @@
 |---|---|
 | `index.html` | 整個網頁（HTML + CSS + JavaScript，不需安裝任何套件） |
 | `referee.jpg` | 裁判手勢圖 |
+| `favicon.ico`、`favicon-*.png`、`apple-touch-icon.png` | 分頁與書籤圖示（像素排球） |
 | `fonts/` | 像素字體 Cubic 11 與授權檔（OFL） |
 | `screenshots/` | README 用的畫面截圖 |
 
