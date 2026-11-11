@@ -126,7 +126,7 @@
   </div>
 
   <div class="panel">
-    <div class="row"><button id="refBtn">◆ 裁判手勢</button><button id="talkBtn">★ 精神喊話</button></div>
+    <div class="row"><button id="refBtn">◆ 裁判手勢</button><button id="talkBtn">★ 精神喊話</button><button id="sfxBtn">♪ 音效：開</button></div>
     <div class="card">
       <h2>① 選你的位子</h2>
       <div class="row" id="pickRow"></div>
@@ -285,6 +285,56 @@ const caption = t => $('caption').innerHTML = t;
 const TXT = {'大':'#ef7d57','中':'#41a6f6','自':'#ffcd75','舉':'#a7f070'};
 function nm(i){ return `<b style="color:${TXT[P[i].g]}">${P[i].name}</b>`; }
 
+
+
+/* ---------- 8-bit 音效（Web Audio 即時合成，不用音檔） ---------- */
+let AC = null, sfxOn = true;
+try { sfxOn = localStorage.getItem('vb_sfx') !== 'off'; } catch (e) {}
+function ac(){
+  if (!AC){ const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; AC = new C(); }
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function tone(freq, dur, type = 'square', vol = .06, when = 0, slide = null){
+  const a = ac(); if (!a) return;
+  const t = a.currentTime + when, o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + .02);
+}
+function noise(dur, vol = .15, when = 0, hp = 800){
+  const a = ac(); if (!a) return;
+  const t = a.currentTime + when, len = Math.floor(a.sampleRate * dur);
+  const buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+  for (let k = 0; k < len; k++) d[k] = (Math.random() * 2 - 1) * (1 - k / len);
+  const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+  src.buffer = buf; f.type = 'highpass'; f.frequency.value = hp; g.gain.value = vol;
+  src.connect(f); f.connect(g); g.connect(a.destination); src.start(t);
+}
+const SFX = {
+  click:   () => tone(880, .05, 'square', .03),
+  whistle: () => { for (let k = 0; k < 5; k++) tone(k % 2 ? 2700 : 2450, .06, 'square', .035, k * .06); tone(2550, .3, 'square', .035, .3); },
+  serve:   () => { noise(.07, .18, 0, 1200); tone(240, .1, 'square', .07, 0, 120); },
+  bump:    () => { tone(320, .12, 'triangle', .14, 0, 170); noise(.04, .06, 0, 1500); },
+  set:     () => { tone(660, .07, 'square', .05); tone(990, .08, 'square', .045, .06); },
+  spike:   () => { noise(.16, .28, 0, 300); tone(170, .2, 'sawtooth', .1, 0, 55); },
+  tip:     () => { tone(520, .06, 'triangle', .1); tone(780, .06, 'triangle', .08, .05); },
+  block:   () => { tone(110, .16, 'square', .1, 0, 70); noise(.1, .18, 0, 200); },
+  rotate:  () => [523, 659, 784, 1047].forEach((f, k) => tone(f, .09, 'square', .045, k * .08)),
+  done:    () => [784, 988, 1175, 1568].forEach((f, k) => tone(f, .12, 'square', .045, k * .1)),
+  open:    () => { tone(440, .06, 'square', .035); tone(660, .08, 'square', .035, .05); },
+  pause:   () => tone(330, .08, 'square', .045),
+  resume:  () => tone(660, .08, 'square', .045)
+};
+function sfx(n){ if (sfxOn && SFX[n]) { try { SFX[n](); } catch (e) {} } }
+function setSfx(v){
+  sfxOn = v;
+  try { localStorage.setItem('vb_sfx', v ? 'on' : 'off'); } catch (e) {}
+  $('sfxBtn').textContent = v ? '♪ 音效：開' : '♪ 音效：關';
+  $('sfxBtn').classList.toggle('on', v);
+  if (v) sfx('open');
+}
 
 /* ---------- 像素素材 ---------- */
 const BALL_MAP = [
@@ -533,12 +583,15 @@ async function defend(k0, from){
     {i:S, to:[300,448]}, {i:M, to:[250,448], delay:.1}, {i:OH, to:[85,500]},
     {i:BOH, to:[80,594]}, {i:BM, to:[205,668]}, {i:BS, to:[330,606]}
   ];
+  sfx('bump');
   if (!await tween(1.1, mv, {from, to:[205,322], h:110})) return;
+  sfx('set');
   if (!await tween(0.8, [], {from:[205,322], to:[302,334], h:90})) return;
 
   stepNow(k0 + 1);
   if (!await tween(0.35, [{i:S, to:[305,410]}, {i:M, to:[262,410]}])) return;
   $('block').setAttribute('visibility','visible');
+  sfx(atk === 'tip' ? 'tip' : 'spike'); setTimeout(() => sfx('block'), 60);
   caption(`${nm(M)} 和 ${nm(S)} 跳起來攔網！` + ATK[atk].text);
   const T = {line:{to:[336,634], d:BS, h:30, dur:.5}, cross:{to:[82,598], d:BOH, h:30, dur:.5}, tip:{to:[262,480], d:BS, h:55, dur:.8}}[atk];
   const extra = atk === 'tip' ? [{i:BM, to:[290,660], delay:.2}] : [];
@@ -548,7 +601,8 @@ async function defend(k0, from){
 
   stepNow(k0 + 2);
   caption(`${nm(T.d)} 防起來了！${nm(M)} 攔完網退到三米線準備攻擊，不站在舉球員前面，讓出路給 ${nm(S)} 接球舉球，準備反攻。${selText()}`);
-  await tween(0.9, [], {from:T.to, to:[285,422], h:130});
+  sfx('bump');
+  if (await tween(0.9, [], {from:T.to, to:[285,422], h:130})) sfx('done');
 }
 
 async function playUs(){
@@ -557,11 +611,13 @@ async function playUs(){
   stepNow(0);
   caption(`後排右的 ${nm(sv)} 走到端線後準備發球。` + (lu.serveM ? `<br>這輪輪到欄中發球，自由先在場邊等；等我方失分、換對方發球時，自由再換回來。` : ''));
   if (!await tween(0.8, [{i:sv, to:SERVE}])) return;
-  if (!await wait(300)) return;
+  sfx('whistle');
+  if (!await wait(700)) return;
 
   stepNow(1);
   caption('發球！球一離手，大家馬上換到自己的位置：前排 <b>大・中・舉</b>，後排 <b>大・自・舉</b>。');
   const moves = P.map((_, i) => i).filter(onCourt).map(i => ({i, to: baseSpot(i), delay: i === sv ? .35 : .15}));
+  sfx('serve');
   if (!await tween(1.5, moves, {from:[308,725], to:[170,170], h:150})) return;
   if (!await wait(400)) return;
   await defend(2, [170,170]);
@@ -641,22 +697,27 @@ async function playThem(){
   caption('對方發球。前排舉球員站網前，其他五個人站 <b>W 型</b>接發。發球前要照輪轉順序站，<b>不能提早換位</b>。'
     + (cross ? `<br>★ 這輪前排是 舉・中・大，第一球先由${firstAtk === 'ohMid' ? '大砲打中間' : '欄中打最左邊'}，打完再換位。` : ''));
   setBall(110, 36, 0);
+  sfx('whistle');
   if (!await wait(900)) return;
 
   stepNow(1);
   caption(`球過網！大家<b>先不換位</b>，在原位把第一球接好，${nm(passer)} 接一傳。只有前排的 ${nm(S)} 馬上快跑到舉球位。`);
+  sfx('serve');
   if (!await tween(1.4, [{i:S, to:setSpot, delay:.2}, {i:passer, to:passSpot, delay:.45}], {from:[110,36], to:passSpot, h:140})) return;
 
   stepNow(2);
   caption(plan.s2);
+  sfx('bump');
   if (!await tween(1.0, [...plan.run, ...others.map(i => ({i, to: baseSpot(i), delay:.15}))], {from:passSpot, to:[setSpot[0], setSpot[1]-6], h:110})) return;
 
   stepNow(3);
   caption(plan.s3);
+  sfx('set');
   if (!await tween(0.9, [{i:plan.hitter, to:plan.hit, delay:.35}], {from:[setSpot[0], setSpot[1]-6], to:plan.ball, h: cross && firstAtk === 'ohMid' ? 70 : 95})) return;
 
   stepNow(4);
   caption(`${nm(plan.hitter)} ${plan.after}`);
+  sfx('spike');
   if (!await tween(0.45, [], {from:plan.ball, to:[250,170], h:25})) return;
   const back2 = P.map((_, i) => i).filter(onCourt).map(i => ({i, to: baseSpot(i)}));
   if (!await tween(cross ? 1.2 : 0.9, back2)) return;
@@ -776,14 +837,21 @@ $('sideUs').onclick = () => { side = 'us'; reset(); };
 $('sideThem').onclick = () => { side = 'them'; reset(); };
 $('playBtn').onclick = play;
 $('resetBtn').onclick = () => reset();
-$('nextBtn').onclick = nextRot;
-$('pauseBtn').onclick = () => { if (playing) setPaused(!paused); };
+$('nextBtn').onclick = () => { sfx('rotate'); nextRot(); };
+$('pauseBtn').onclick = () => { if (playing){ setPaused(!paused); sfx(paused ? 'pause' : 'resume'); } };
 $('speed').onchange = e => speed = parseFloat(e.target.value);
 
-$('refBtn').onclick = () => $('refModal').style.display = 'flex';
+$('refBtn').onclick = () => { sfx('open'); $('refModal').style.display = 'flex'; };
 $('refClose').onclick = () => $('refModal').style.display = 'none';
 $('refModal').onclick = e => { if (e.target.id === 'refModal') $('refModal').style.display = 'none'; };
-$('talkBtn').onclick = () => $('talkModal').style.display = 'flex';
+$('talkBtn').onclick = () => { sfx('open'); $('talkModal').style.display = 'flex'; };
+$('sfxBtn').onclick = () => setSfx(!sfxOn);
+setSfx(sfxOn);
+// 其他按鈕的點擊音
+document.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b && !['nextBtn','pauseBtn','refBtn','talkBtn','sfxBtn','playBtn'].includes(b.id)) sfx('click');
+});
 $('talkClose').onclick = () => $('talkModal').style.display = 'none';
 $('talkModal').onclick = e => { if (e.target.id === 'talkModal') $('talkModal').style.display = 'none'; };
 
