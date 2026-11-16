@@ -135,6 +135,7 @@
       <h2>① 選你的位子</h2>
       <div class="row" id="pickRow"></div>
       <p class="note" style="margin:8px 0 0">也可以直接點場上的球員。</p>
+      <p class="note" style="margin:4px 0 0">※ 如果沒有自由球員，可以把「自由」想成欄中在後排的站位。</p>
     </div>
 
     <div class="card half">
@@ -642,9 +643,9 @@ async function defend(k0, from){
 
 async function playUs(){
   const sv = whoAt(1);
-  setSteps(['發球員走到端線後','發球！大家換位', ...DEF_STEPS]);
+  setSteps(['發球前：需要換位的先集中站好','發球！大家馬上跑到位', ...DEF_STEPS]);
   stepNow(0);
-  caption(`後排右的 ${nm(sv)} 走到端線後準備發球。` + (lu.serveM ? `<br>這輪輪到欄中發球，自由先在場邊等；等我方失分、換對方發球時，自由再換回來。` : ''));
+  caption(`後排右的 ${nm(sv)} 走到端線後準備發球。` + stackText() + (lu.serveM ? `<br>這輪輪到欄中發球，自由先在場邊等；等我方失分、換對方發球時，自由再換回來。` : ''));
   if (!await tween(0.8, [{i:sv, to:SERVE}])) return;
   sfx('whistle');
   if (!await wait(700)) return;
@@ -661,7 +662,36 @@ async function playUs(){
 /* 開始前站的位置：對方發球 → 接發站位，我方發球 → 輪轉位置 */
 function readySpot(i){
   if (side === 'them' && onCourt(i)) return receiveSpots()[i].slice();
+  if (side === 'us' && onCourt(i)) return serveSpots()[i].slice();
   return startSpot(i);
+}
+
+/* 我方發球前：需要換位的那一排先集中（前排貼網靠中間、後排站中間），球一發馬上跑到位 */
+function needSwitch(front){
+  return P.some((_, i) => onCourt(i) && isFront(lu.pos[i]) === front && lu.pos[i] !== 1
+    && Math.abs(baseSpot(i)[0] - ROT[lu.pos[i]][0]) > 5);
+}
+function serveSpots(){
+  const spots = {};
+  const fr = needSwitch(true), bk = needSwitch(false);
+  const STACK_F = {4:[160,404], 3:[200,404], 2:[240,404]};
+  const STACK_B = {5:[184,570], 6:[216,594]};
+  P.forEach((_, i) => {
+    if (!onCourt(i)) return;
+    const p = lu.pos[i];
+    if (isFront(p)) spots[i] = (fr ? STACK_F[p] : ROT[p]).slice();
+    else if (p === 1) spots[i] = ROT[1].slice();
+    else spots[i] = (bk ? STACK_B[p] : ROT[p]).slice();
+  });
+  return spots;
+}
+function stackText(){
+  const fr = needSwitch(true), bk = needSwitch(false);
+  if (!fr && !bk) return '這輪大家本來就站在對的位置，發球前不用集中。';
+  const parts = [];
+  if (fr) parts.push('前排<b>貼網、靠中間集中</b>');
+  if (bk) parts.push('後排<b>站在中間</b>');
+  return '這輪要換位，' + parts.join('，') + '，球一發馬上跑到位。';
 }
 
 /* 接發站位：前排舉球員站網前，其他五人站 W 型 */
